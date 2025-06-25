@@ -1,0 +1,168 @@
+! Command: show running-config
+! device: leaf1 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+!
+no aaa root
+!
+username admin privilege 15 role network-admin secret sha512 $6$rfCNYLywfwAD4o7h$C1Th9VdDDxDLFEUyjwR8G9Gkq3DU3zo4nl3CMUWAuny1JTbu4bNytZm.7xdsWqlIcFsQNlp9HuHsJRN/nhQ6c0
+username tony privilege 15 role network-admin secret sha512 $6$RvUeXfiaWlcZPNWv$aw93WkD2BU6fmmgrczooSk7lCsOHgHDaBXUAp5WSRo6EUBQgflVTFrq6h4tnUljsNZKLXdXYvUB6exbcpUWZx.
+username tony ssh-key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBZZfZDDmZQOUNHPEM9msgpvnn+ij5Hp1Yp+R3FMDfRI tony@ubuntu10-1
+!
+management api http-commands
+   no shutdown
+   !
+   vrf MGMT
+      no shutdown
+!
+no service interface inactive port-id allocation disabled
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname leaf1
+!
+spanning-tree mode mstp
+no spanning-tree vlan-id 4094
+!
+system l1
+   unsupported speed action error
+   unsupported error-correction action error
+!
+vlan 100,4093-4094
+!
+vrf instance MGMT
+!
+vrf instance Picard
+!
+management api gnmi
+   transport grpc default
+      vrf MGMT
+!
+management api netconf
+   transport ssh default
+      vrf MGMT
+!
+aaa authorization exec default local
+!
+interface Port-Channel10
+   switchport access vlan 100
+   mlag 10
+!
+interface Port-Channel2000
+   switchport trunk allowed vlan 4093-4094
+   switchport mode trunk
+!
+interface Ethernet1
+   channel-group 2000 mode active
+!
+interface Ethernet2
+   channel-group 2000 mode active
+!
+interface Ethernet3
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Ethernet4
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Ethernet10
+   channel-group 10 mode active
+!
+interface Ethernet11
+   channel-group 10 mode active
+!
+interface Loopback0
+   ip address 10.255.1.1/32
+!
+interface Loopback1
+   ip address 10.255.2.1/32
+!
+interface Management0
+   vrf MGMT
+   ip address 172.20.20.11/24
+!
+interface Vlan100
+   vrf Picard
+   ip address virtual 10.1.100.1/24
+!
+interface Vlan4093
+   no autostate
+   ipv6 enable
+!
+interface Vlan4094
+   no autostate
+   ip address 10.253.0.1/30
+!
+interface Vxlan1
+   vxlan source-interface Loopback1
+   vxlan udp-port 4789
+   vxlan vlan 100 vni 10100
+   vxlan vrf Picard vni 10000
+!
+ip virtual-router mac-address 02:00:00:00:00:99
+!
+ip routing ipv6 interfaces 
+no ip routing vrf MGMT
+ip routing vrf Picard
+!
+ipv6 unicast-routing
+!
+mlag configuration
+   domain-id MLAG
+   local-interface Vlan4094
+   peer-address 10.253.0.2
+   peer-link Port-Channel2000
+!
+ip route vrf MGMT 0.0.0.0/0 172.20.20.1
+!
+router bgp 65101
+   no bgp default ipv4-unicast
+   maximum-paths 4 ecmp 4
+   neighbor EVPN peer group
+   neighbor EVPN remote-as 65001
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop
+   neighbor EVPN send-community extended
+   neighbor MLAG_PEER peer group
+   neighbor MLAG_PEER remote-as 65101
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY remote-as 65001
+   neighbor 10.255.1.101 peer group EVPN
+   neighbor 10.255.1.102 peer group EVPN
+   neighbor interface Et3-4 peer-group UNDERLAY
+   neighbor interface Vl4093 peer-group MLAG_PEER
+   !
+   vlan 100
+      rd auto
+      route-target both 100:100
+      redistribute learned
+   !
+   address-family evpn
+      neighbor EVPN activate
+   !
+   address-family ipv4
+      bgp next-hop address-family ipv6
+      neighbor MLAG_PEER activate
+      neighbor MLAG_PEER next-hop address-family ipv6 originate
+      neighbor UNDERLAY activate
+      neighbor UNDERLAY next-hop address-family ipv6 originate
+      network 10.255.1.1/32
+      network 10.255.2.1/32
+   !
+   vrf Picard
+      rd 10.255.1.1:10000
+      route-target import evpn 10000:10000
+      route-target export evpn 10000:10000
+      redistribute connected
+!
+router multicast
+   ipv4
+      software-forwarding kernel
+   !
+   ipv6
+      software-forwarding kernel
+!
+end

@@ -1,0 +1,118 @@
+! Command: show running-config
+! device: spine2 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+!
+no aaa root
+!
+username admin privilege 15 role network-admin secret sha512 $6$9yJEVnL3MC6LmKEw$79g2SrDXHBgWmxE6SY/HMlRMIgGHjF1NvVMBfq0CWGW/qgphWtlfIsKr2E.3URxj3AGeKrmFEzmKtvGbciQqS.
+username tony privilege 15 role network-admin secret sha512 $6$RvUeXfiaWlcZPNWv$aw93WkD2BU6fmmgrczooSk7lCsOHgHDaBXUAp5WSRo6EUBQgflVTFrq6h4tnUljsNZKLXdXYvUB6exbcpUWZx.
+username tony ssh-key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBZZfZDDmZQOUNHPEM9msgpvnn+ij5Hp1Yp+R3FMDfRI tony@ubuntu10-1
+!
+management api http-commands
+   no shutdown
+   !
+   vrf MGMT
+      no shutdown
+!
+no service interface inactive port-id allocation disabled
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname spine2
+!
+spanning-tree mode mstp
+!
+system l1
+   unsupported speed action error
+   unsupported error-correction action error
+!
+vrf instance MGMT
+!
+management api gnmi
+   transport grpc default
+      vrf MGMT
+!
+management api netconf
+   transport ssh default
+      vrf MGMT
+!
+aaa authorization exec default local
+!
+interface Ethernet1
+!
+interface Ethernet2
+!
+interface Ethernet3
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Ethernet4
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Ethernet5
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Ethernet6
+   mtu 1550
+   no switchport
+   ipv6 enable
+!
+interface Loopback0
+   ip address 10.255.1.102/32
+!
+interface Management0
+   vrf MGMT
+   ip address 172.20.20.102/24
+!
+ip routing ipv6 interfaces 
+no ip routing vrf MGMT
+!
+ipv6 unicast-routing
+!
+ip route vrf MGMT 0.0.0.0/0 172.20.20.1
+!
+router bgp 65001
+   router-id 10.255.1.102
+   no bgp default ipv4-unicast
+   maximum-paths 4 ecmp 4
+   neighbor EVPN peer group
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY next-hop-self
+   neighbor 10.255.1.1 peer group EVPN
+   neighbor 10.255.1.1 remote-as 65101
+   neighbor 10.255.1.2 peer group EVPN
+   neighbor 10.255.1.2 remote-as 65101
+   neighbor 10.255.1.3 peer group EVPN
+   neighbor 10.255.1.3 remote-as 65103
+   neighbor 10.255.1.4 peer group EVPN
+   neighbor 10.255.1.4 remote-as 65104
+   neighbor interface Et3-4 peer-group UNDERLAY remote-as 65101
+   neighbor interface Et5 peer-group UNDERLAY remote-as 65103
+   neighbor interface Et6 peer-group UNDERLAY remote-as 65104
+   !
+   address-family evpn
+      neighbor EVPN activate
+   !
+   address-family ipv4
+      bgp next-hop address-family ipv6
+      neighbor UNDERLAY activate
+      neighbor UNDERLAY next-hop address-family ipv6 originate
+      network 10.255.1.102/32
+!
+router multicast
+   ipv4
+      software-forwarding kernel
+   !
+   ipv6
+      software-forwarding kernel
+!
+end
