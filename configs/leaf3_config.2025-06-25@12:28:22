@@ -1,9 +1,9 @@
 ! Command: show running-config
-! device: leaf4 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+! device: leaf3 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
 !
 no aaa root
 !
-username admin privilege 15 role network-admin secret sha512 $6$bPdmIHuVfHVmDLD4$CcTvZRYplRKuOMaoAYMiuR2pbqrt9oH0/iXvudoe2J8NASjETSAZ5QEMVWY9MBO9UhRzchQ9gi68Ux7ItUflm.
+username admin privilege 15 role network-admin secret sha512 $6$jDhnufhpDms8hI.x$UhFVP3.NkUXiWjZh0lfj0nwJcH.PXlVx0WNpifci35WGdmvW1ZS7bTguBrc0nWSSj4tISZPxwWEe2MRP8m.RU.
 username tony privilege 15 role network-admin secret sha512 $6$RvUeXfiaWlcZPNWv$aw93WkD2BU6fmmgrczooSk7lCsOHgHDaBXUAp5WSRo6EUBQgflVTFrq6h4tnUljsNZKLXdXYvUB6exbcpUWZx.
 username tony ssh-key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBZZfZDDmZQOUNHPEM9msgpvnn+ij5Hp1Yp+R3FMDfRI tony@ubuntu10-1
 !
@@ -19,7 +19,7 @@ transceiver qsfp default-mode 4x10G
 !
 service routing protocols model multi-agent
 !
-hostname leaf4
+hostname leaf3
 !
 spanning-tree mode mstp
 !
@@ -48,6 +48,7 @@ interface Port-Channel10
    !
    evpn ethernet-segment
       identifier auto lacp
+      route-target import 00:00:00:00:00:02
    lacp system-id 0000.0000.0002
 !
 interface Ethernet1
@@ -65,22 +66,24 @@ interface Ethernet4
    ipv6 enable
 !
 interface Ethernet10
+   evpn ethernet-segment
    channel-group 10 mode active
 !
 interface Ethernet11
+   evpn ethernet-segment
    channel-group 10 mode active
 !
 interface Ethernet12
 !
 interface Loopback0
-   ip address 10.255.1.4/32
+   ip address 10.255.1.3/24
 !
 interface Loopback1
-   ip address 10.255.2.4/32
+   ip address 10.255.2.3/24
 !
 interface Management0
    vrf MGMT
-   ip address 172.20.20.14/24
+   ip address 172.20.20.13/24
 !
 interface Vlan200
    vrf Picard
@@ -102,8 +105,8 @@ ipv6 unicast-routing
 !
 ip route vrf MGMT 0.0.0.0/0 172.20.20.1
 !
-router bgp 65104
-   router-id 10.255.1.4
+router bgp 65103
+   router-id 10.255.1.3
    no bgp default ipv4-unicast
    maximum-paths 4 ecmp 4
    neighbor EVPN peer group
@@ -128,11 +131,11 @@ router bgp 65104
    address-family ipv4
       neighbor UNDERLAY activate
       neighbor UNDERLAY next-hop address-family ipv6 originate
-      network 10.255.1.4/32
-      network 10.255.2.4/32
+      network 10.255.1.3/32
+      network 10.255.2.3/32
    !
    vrf Picard
-      rd 10.255.1.4:10000
+      rd 10.255.1.3:10000
       route-target import evpn 10000:10000
       route-target export evpn 10000:10000
       redistribute connected
