@@ -1,5 +1,5 @@
 ! Command: show running-config
-! device: leaf3 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+! device: leaf3 (cEOSLab, EOS-4.34.0F-41661064.4340F (engineering build))
 !
 no aaa root
 !
@@ -22,12 +22,13 @@ service routing protocols model multi-agent
 hostname leaf3
 !
 spanning-tree mode mstp
+no spanning-tree vlan-id 4094
 !
 system l1
    unsupported speed action error
    unsupported error-correction action error
 !
-vlan 200
+vlan 100,200
 !
 vrf instance MGMT
 !
@@ -50,6 +51,7 @@ interface Port-Channel10
       identifier auto lacp
       route-target import 00:00:00:00:00:02
    lacp system-id 0000.0000.0002
+   mlag 10
 !
 interface Ethernet1
 !
@@ -84,6 +86,10 @@ interface Loopback1
 interface Management0
    vrf MGMT
    ip address 172.20.20.13/24
+!
+interface Vlan100
+   vrf Picard
+   ip address virtual 10.1.100.1/24
 !
 interface Vlan200
    vrf Picard

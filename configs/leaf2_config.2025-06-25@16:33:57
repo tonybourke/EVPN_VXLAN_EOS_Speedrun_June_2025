@@ -1,9 +1,9 @@
 ! Command: show running-config
-! device: leaf1 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+! device: leaf2 (cEOSLab, EOS-4.34.0F-41661064.4340F (engineering build))
 !
 no aaa root
 !
-username admin privilege 15 role network-admin secret sha512 $6$rfCNYLywfwAD4o7h$C1Th9VdDDxDLFEUyjwR8G9Gkq3DU3zo4nl3CMUWAuny1JTbu4bNytZm.7xdsWqlIcFsQNlp9HuHsJRN/nhQ6c0
+username admin privilege 15 role network-admin secret sha512 $6$Dkgs3CR1x8kokrqr$HfAaT3dx2CXm5bhERCeEkN6VtR6tHckJzNAlVAhCmVv5CnHMcbUrmpWT19PMiUGmvApCeNoHdTVcWffYyQH8o1
 username tony privilege 15 role network-admin secret sha512 $6$RvUeXfiaWlcZPNWv$aw93WkD2BU6fmmgrczooSk7lCsOHgHDaBXUAp5WSRo6EUBQgflVTFrq6h4tnUljsNZKLXdXYvUB6exbcpUWZx.
 username tony ssh-key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBZZfZDDmZQOUNHPEM9msgpvnn+ij5Hp1Yp+R3FMDfRI tony@ubuntu10-1
 !
@@ -19,7 +19,7 @@ transceiver qsfp default-mode 4x10G
 !
 service routing protocols model multi-agent
 !
-hostname leaf1
+hostname leaf2
 !
 spanning-tree mode mstp
 no spanning-tree vlan-id 4094
@@ -75,14 +75,14 @@ interface Ethernet11
    channel-group 10 mode active
 !
 interface Loopback0
-   ip address 10.255.1.1/32
+   ip address 10.255.1.2/32
 !
 interface Loopback1
    ip address 10.255.2.1/32
 !
 interface Management0
    vrf MGMT
-   ip address 172.20.20.11/24
+   ip address 172.20.20.12/24
 !
 interface Vlan100
    vrf Picard
@@ -94,10 +94,11 @@ interface Vlan4093
 !
 interface Vlan4094
    no autostate
-   ip address 10.253.0.1/30
+   ip address 10.253.0.2/30
 !
 interface Vxlan1
    vxlan source-interface Loopback1
+   vxlan virtual-router encapsulation mac-address mlag-system-id
    vxlan udp-port 4789
    vxlan vlan 100 vni 10100
    vxlan vrf Picard vni 10000
@@ -113,12 +114,13 @@ ipv6 unicast-routing
 mlag configuration
    domain-id MLAG
    local-interface Vlan4094
-   peer-address 10.253.0.2
+   peer-address 10.253.0.1
    peer-link Port-Channel2000
 !
 ip route vrf MGMT 0.0.0.0/0 172.20.20.1
 !
 router bgp 65101
+   router-id 10.255.1.2
    no bgp default ipv4-unicast
    maximum-paths 4 ecmp 4
    neighbor EVPN peer group
@@ -129,14 +131,14 @@ router bgp 65101
    neighbor MLAG_PEER peer group
    neighbor MLAG_PEER remote-as 65101
    neighbor UNDERLAY peer group
-   neighbor UNDERLAY remote-as 65001
+   neighbor UNDERLAY next-hop-self
    neighbor 10.255.1.101 peer group EVPN
    neighbor 10.255.1.102 peer group EVPN
-   neighbor interface Et3-4 peer-group UNDERLAY
+   neighbor interface Et3-4 peer-group UNDERLAY remote-as 65001
    neighbor interface Vl4093 peer-group MLAG_PEER
    !
    vlan 100
-      rd auto
+      rd 10.255.1.2:100
       route-target both 100:100
       redistribute learned
    !
@@ -144,16 +146,15 @@ router bgp 65101
       neighbor EVPN activate
    !
    address-family ipv4
-      bgp next-hop address-family ipv6
       neighbor MLAG_PEER activate
       neighbor MLAG_PEER next-hop address-family ipv6 originate
       neighbor UNDERLAY activate
       neighbor UNDERLAY next-hop address-family ipv6 originate
-      network 10.255.1.1/32
+      network 10.255.1.2/32
       network 10.255.2.1/32
    !
    vrf Picard
-      rd 10.255.1.1:10000
+      rd 10.255.1.2:10000
       route-target import evpn 10000:10000
       route-target export evpn 10000:10000
       redistribute connected

@@ -1,5 +1,5 @@
 ! Command: show running-config
-! device: spine2 (cEOSLab, EOS-4.34.1F-41910228.orinocorel (engineering build))
+! device: spine2 (cEOSLab, EOS-4.34.0F-41661064.4340F (engineering build))
 !
 no aaa root
 !
